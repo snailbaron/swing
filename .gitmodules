@@ -1,0 +1,3 @@
+[submodule "deps/ecosnail"]
+	path = deps/ecosnail
+	url = https://github.com/snaco/ecosnail

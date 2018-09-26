@@ -1,10 +1,11 @@
 import os
 
-SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
+SWING_DIR = os.path.join(ROOT_DIR, 'src', 'swing')
 
 def ecosnail_include(project):
     return os.path.join(
-        SCRIPT_DIR, 'deps', 'ecosnail', 'src', project, 'include')
+        ROOT_DIR, 'deps', 'ecosnail', 'src', project, 'include')
 
 FLAGS = [
     '-Wall',
@@ -18,6 +19,8 @@ FLAGS = [
     '-isystem', '/usr/include/',
 
     '-I', ecosnail_include('tail'),
+
+    '-I', SWING_DIR,
 ]
 
 def Settings(**kwargs):

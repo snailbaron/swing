@@ -1,20 +1,21 @@
-#include "widgets.hpp"
+#include "widgets/label.hpp"
 
-#include <utility>
+#include <SDL2/SDL_ttf.h>
+
 #include <cassert>
 
 Label::Label()
     : _cachedTexture(nullptr, SDL_DestroyTexture)
 { }
 
-Label& Label::position(float x, float y)
+Label& Label::position(int x, int y)
 {
     _position.x = x;
     _position.y = y;
     return *this;
 }
 
-Label& Label::size(float width, float height)
+Label& Label::size(int width, int height)
 {
     _size.x = width;
     _size.y = height;
@@ -47,11 +48,9 @@ void Label::draw(SDL_Renderer* renderer, WidgetState) const
 {
     checkCache(renderer);
 
-    auto pixelPosition = _position.pixels(renderer);
-
     SDL_Rect dstRect {
-        pixelPosition.x - _textureSize.x / 2,
-        pixelPosition.y - _textureSize.y / 2,
+        _position.x - _textureSize.x / 2,
+        _position.y - _textureSize.y / 2,
         _textureSize.x,
         _textureSize.y
     };
@@ -61,27 +60,29 @@ void Label::draw(SDL_Renderer* renderer, WidgetState) const
 
 void Label::checkCache(SDL_Renderer* renderer) const
 {
-    PixelVector screenSize;
-    SDL_GetRendererOutputSize(renderer, &screenSize.x, &screenSize.y);
-
-    if (screenSize != _screenSize) {
-        _screenSize = screenSize;
-        _cacheIsCold = true;
-    }
-
     if (_cacheIsCold) {
-        auto pixelSize = _size.pixels(renderer);
-
         auto resFile = resourceFile(_font);
-        TTF_Font* font = TTF_OpenFont(resFile.c_str(), pixelSize.y);
-
+        TTF_Font* font = TTF_OpenFont(resFile.c_str(), _size.y);
         assert(font);
+
+        int w;
+        TTF_SizeUTF8(font, _text.c_str(), &w, nullptr);
+        if (w > _size.x) {
+            int newSize = _size.y * _size.x / w;
+            font = TTF_OpenFont(resFile.c_str(), newSize);
+            assert(font);
+        }
+
         SDL_Surface* surface =
             TTF_RenderUTF8_Blended(font, _text.c_str(), _color);
-        _textureSize = {surface->w, surface->h};
+        //SDL_Surface* surface =
+        //    TTF_RenderUTF8_Shaded(font, _text.c_str(), _color, SDL_Color{200, 200, 200, 255});
         assert(surface);
+        _textureSize = {surface->w, surface->h};
+
         SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
         assert(texture);
+
         _cachedTexture.reset(texture);
         _cacheIsCold = false;
 
@@ -89,3 +90,4 @@ void Label::checkCache(SDL_Renderer* renderer) const
         TTF_CloseFont(font);
     }
 }
+

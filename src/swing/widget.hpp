@@ -13,4 +13,6 @@ public:
     virtual ~Widget() {}
 
     virtual void draw(SDL_Renderer* renderer, WidgetState state) const = 0;
+    virtual bool contains(int, int) const { return false; }
+    virtual void perform() const {}
 };

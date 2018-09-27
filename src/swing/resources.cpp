@@ -1,24 +1,46 @@
 #include "resources.hpp"
-#include "paths.hpp"
 
-#include <map>
+#include <SDL2/SDL_image.h>
 
-namespace fs = std::filesystem;
+#include <cassert>
 
 namespace {
 
-fs::path absPath(fs::path relPath)
+SDL_Texture* loadTexture(SDL_Renderer* renderer, Bitmap bitmap)
 {
-    return exeDir() / "data" / relPath;
+    SDL_Surface* surface = IMG_Load(resourceFile(bitmap).c_str());
+    assert(surface);
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    assert(texture);
+
+    SDL_FreeSurface(surface);
+
+    return texture;
 }
 
 } // namespace
 
-fs::path resourceFile(Font font)
+Resources::Resources(SDL_Renderer* renderer)
+    : _renderer(renderer)
 {
-    static const std::map<Font, fs::path> map {
-        {Font::Blogger, "fonts/Blogger_Sans-Bold.otf"},
+    static const std::vector<Bitmap> bitmaps {
+        Bitmap::Hero,
     };
 
-    return absPath(map.at(font));
+    for (auto bitmap : bitmaps) {
+        _textures[bitmap] = loadTexture(_renderer, bitmap);
+    }
+}
+
+Resources::~Resources()
+{
+    for (auto [bitmap, texture] : _textures) {
+        SDL_DestroyTexture(texture);
+    }
+}
+
+SDL_Texture* Resources::texture(Bitmap bitmap) const
+{
+    return _textures.at(bitmap);
 }

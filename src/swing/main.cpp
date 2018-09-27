@@ -3,18 +3,25 @@
 #include "resources.hpp"
 #include "widgets/label.hpp"
 #include "widgets/button.hpp"
+#include "resources.hpp"
+#include "components.hpp"
+
+#include <ecosnail/thing.hpp>
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 
 #include <vector>
 #include <memory>
 #include <iostream>
 
+using ecosnail::thing::EntityManager;
+
 int main()
 {
     SDL_Init(SDL_INIT_VIDEO);
+    IMG_Init(IMG_INIT_PNG);
     TTF_Init();
 
     SDL_Window* window = SDL_CreateWindow(
@@ -30,102 +37,38 @@ int main()
         -1,
         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
-    auto helloLabel = std::make_shared<Label>();
-    helloLabel->position(960, 200);
-    helloLabel->size(300, 100);
-    helloLabel->font(Font::Blogger);
-    helloLabel->text("Swing");
-    helloLabel->color(150, 150, 0);
+    Resources resources(renderer);
+    EntityManager entityManager;
 
-    auto newGameButton = std::make_shared<Button>();
-    newGameButton->position(960, 400);
-    newGameButton->size(400, 100);
-    newGameButton->font(Font::Blogger);
-    newGameButton->text("New Game");
+    auto hero = entityManager.createEntity();
 
-    auto optionsButton = std::make_shared<Button>();
-    optionsButton->position(960, 600);
-    optionsButton->size(400, 100);
-    optionsButton->font(Font::Blogger);
-    optionsButton->text("Options");
+    auto& heroPosition = entityManager.add<Position>(hero);
+    heroPosition.x = 0.0;
+    heroPosition.y = 0.0;
 
-    auto exitButton = std::make_shared<Button>();
-    exitButton->position(960, 800);
-    exitButton->size(400, 100);
-    exitButton->font(Font::Blogger);
-    exitButton->text("Exit");
-    exitButton->action([] {
-        SDL_Event quitEvent;
-        quitEvent.type = SDL_QUIT;
-        SDL_PushEvent(&quitEvent);
-    });
-
-    std::vector<std::shared_ptr<Widget>> widgets;
-    widgets.push_back(std::move(helloLabel));
-    widgets.push_back(std::move(newGameButton));
-    widgets.push_back(std::move(optionsButton));
-    widgets.push_back(std::move(exitButton));
-
-    std::weak_ptr<Widget> widgetUnderCursor;
-    std::weak_ptr<Widget> activeWidget;
-
-    auto readEvents = [&widgets, &widgetUnderCursor, &activeWidget] {
-        for (SDL_Event event; SDL_PollEvent(&event);) {
-            switch (event.type) {
-                case SDL_QUIT:
-                    return false;
-
-                case SDL_MOUSEMOTION:
-                    widgetUnderCursor.reset();
-                    for (const auto& widget : widgets) {
-                        if (widget->contains(event.motion.x, event.motion.y)) {
-                            widgetUnderCursor = widget;
-                        }
-                    }
-                    break;
-
-                case SDL_MOUSEBUTTONDOWN:
-                    if (widgetUnderCursor.lock()) {
-                        activeWidget = widgetUnderCursor;
-                    }
-                    break;
-
-                case SDL_MOUSEBUTTONUP:
-                    if (!activeWidget.expired() &&
-                            activeWidget.lock() == widgetUnderCursor.lock()) {
-                        activeWidget.lock()->perform();
-                    }
-                    activeWidget.reset();
-                    break;
-            }
-        }
-        return true;
-    };
+    auto& heroAnimation = entityManager.add<Animation>(hero);
+    heroAnimation.texture = resources.texture(Bitmap::Hero);
 
     while (true) {
-        if (!readEvents()) {
+        bool done = false;
+        for (SDL_Event event; SDL_PollEvent(&event);) {
+            if (event.type == SDL_QUIT) {
+                done = true;
+                break;
+            }
+        }
+        if (done) {
             break;
         }
 
         SDL_SetRenderDrawColor(renderer, 225, 225, 200, 255);
         SDL_RenderClear(renderer);
 
-        auto active = activeWidget.lock();
-        auto underCursor = widgetUnderCursor.lock();
-        for (const auto& widget : widgets) {
-            if (active) {
-                if (widget == active) {
-                    widget->draw(renderer, WidgetState::Active);
-                } else {
-                    widget->draw(renderer, WidgetState::Passive);
-                }
-            } else {
-                if (widget == underCursor) {
-                    widget->draw(renderer, WidgetState::Focused);
-                } else {
-                    widget->draw(renderer, WidgetState::Passive);
-                }
-            }
+        for (auto entity : entityManager.entities<Animation>()) {
+            const auto& position = entityManager.component<Position>(entity);
+            const auto& animation = entityManager.component<Animation>(entity);
+
+            SDL_RenderCopy(renderer, animation.texture, nullptr, 
         }
 
         SDL_RenderPresent(renderer);
@@ -135,5 +78,6 @@ int main()
     SDL_DestroyWindow(window);
 
     TTF_Quit();
+    IMG_Quit();
     SDL_Quit();
 }

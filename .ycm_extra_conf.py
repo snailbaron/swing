@@ -19,6 +19,7 @@ FLAGS = [
     '-isystem', '/usr/include/',
 
     '-I', ecosnail_include('tail'),
+    '-I', ecosnail_include('thing'),
 
     '-I', SWING_DIR,
 ]

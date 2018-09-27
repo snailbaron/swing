@@ -1,7 +1,10 @@
 add_executable(swing
+    asset_map.cpp
     main.cpp
     paths.cpp
     resources.cpp
+    screen.cpp
+    screens/main_menu.cpp
     widgets/button.cpp
     widgets/label.cpp
 )
